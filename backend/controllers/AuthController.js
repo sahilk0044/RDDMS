@@ -78,9 +78,9 @@ export const adminLogin = async (req, res) => {
 
   try {
 
+    // extract values from request
     const { email, password } = req.body;
 
-    // check user
     const admin = await User.findOne({ email });
 
     if (!admin) {
@@ -89,14 +89,12 @@ export const adminLogin = async (req, res) => {
       });
     }
 
-    // check role (important)
     if (admin.role !== "admin") {
       return res.status(403).json({
-        message: "Access denied. Not an admin."
+        message: "Access denied"
       });
     }
 
-    // compare password
     const isMatch = await bcrypt.compare(password, admin.password);
 
     if (!isMatch) {
@@ -105,9 +103,15 @@ export const adminLogin = async (req, res) => {
       });
     }
 
+    const token = jwt.sign(
+      { id: admin._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
     res.status(200).json({
       message: "Login successful",
-      token: generateToken(admin._id),
+      token,
       admin: {
         id: admin._id,
         name: admin.name,
@@ -119,8 +123,7 @@ export const adminLogin = async (req, res) => {
   } catch (error) {
 
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: error.message
     });
 
   }

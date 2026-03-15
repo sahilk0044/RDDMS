@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import User from "../models/User.js";
 
-dotenv.config();
+dotenv.config({ path: "../.env" });
 
 const createAdmin = async () => {
 
@@ -15,7 +15,7 @@ const createAdmin = async () => {
 
     const admin = new User({
       name: "Admin",
-      email: "admin@rddms.com",
+      email: "admin@gmail.com",
       password: hashedPassword,
       role: "admin"
     });
