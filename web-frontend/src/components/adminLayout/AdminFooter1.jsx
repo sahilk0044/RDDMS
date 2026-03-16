@@ -1,6 +1,6 @@
 import React from "react";
 
-const AdminFooter = () => {
+const AdminFooter1 = () => {
 
   return (
 
@@ -20,4 +20,4 @@ const AdminFooter = () => {
 
 };
 
-export default AdminFooter;
+export default AdminFooter1;

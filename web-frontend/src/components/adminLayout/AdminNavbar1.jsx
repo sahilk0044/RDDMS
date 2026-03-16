@@ -3,7 +3,7 @@ import { Navbar, Container, Button } from "react-bootstrap";
 import { Menu, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const AdminNavbar = ({ toggleSidebar }) => {
+const AdminNavbar1 = ({ toggleSidebar }) => {
 
   const navigate = useNavigate();
 
@@ -41,4 +41,4 @@ const AdminNavbar = ({ toggleSidebar }) => {
 
 };
 
-export default AdminNavbar;
+export default AdminNavbar1;

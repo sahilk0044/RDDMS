@@ -3,7 +3,7 @@ import { Row, Col, Card } from "react-bootstrap";
 import { motion } from "framer-motion";
 import { AlertTriangle, CheckCircle, Clock, MapPin } from "lucide-react";
 
-const DashboardCards = ({ stats }) => {
+const AdminDashboard1 = ({ stats }) => {
 
   const cards = [
     {
@@ -81,4 +81,4 @@ const DashboardCards = ({ stats }) => {
   );
 };
 
-export default DashboardCards;
+export default AdminDashboard1;

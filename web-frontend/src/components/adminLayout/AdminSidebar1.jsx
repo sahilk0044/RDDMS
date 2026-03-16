@@ -9,7 +9,7 @@ import {
   BarChart3
 } from "lucide-react";
 
-const AdminSidebar = ({ sidebarOpen, closeSidebar }) => {
+const AdminSidebar1 = ({ sidebarOpen, closeSidebar }) => {
 
   const links = [
     {
@@ -87,4 +87,4 @@ const AdminSidebar = ({ sidebarOpen, closeSidebar }) => {
 
 };
 
-export default AdminSidebar;
+export default AdminSidebar1;
