@@ -65,67 +65,60 @@ res.status(500).json({message:error.message});
 }
 
 };
-const generateToken = (id) => {
-  return jwt.sign(
-    { id },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-};
+
 
 
 export const adminLogin = async (req, res) => {
-
   try {
-
-    // extract values from request
     const { email, password } = req.body;
 
-    const admin = await User.findOne({ email });
+    const user = await User.findOne({ email });
 
-    if (!admin) {
+    // ❌ user not found
+    if (!user) {
       return res.status(401).json({
-        message: "Admin not found"
+        message: "Invalid email or password"
       });
     }
 
-    if (admin.role !== "admin") {
+    // ❌ not admin
+    if (user.role !== "admin") {
       return res.status(403).json({
-        message: "Access denied"
+        message: "Access denied. Admins only."
       });
     }
 
-    const isMatch = await bcrypt.compare(password, admin.password);
+    // ❌ wrong password
+    const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
       return res.status(401).json({
-        message: "Invalid credentials"
+        message: "Invalid email or password"
       });
     }
 
+    // ✅ generate token
     const token = jwt.sign(
-      { id: admin._id },
+      { id: user._id, role: user.role }, // include role 🔥
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
+    // ✅ response
     res.status(200).json({
       message: "Login successful",
       token,
-      admin: {
-        id: admin._id,
-        name: admin.name,
-        email: admin.email,
-        role: admin.role
+      role: user.role, // 🔥 IMPORTANT (frontend uses this)
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
       }
     });
 
   } catch (error) {
-
     res.status(500).json({
       message: error.message
     });
-
   }
-
 };
