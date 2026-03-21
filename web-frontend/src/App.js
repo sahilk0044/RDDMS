@@ -5,6 +5,8 @@ import AdminLogin from './components/guestLayout/AdminLogin';
 import AdminLayout from './components/adminLayout/AdminLayout';
 import AdminDashboard from './components/adminLayout/AdminDashboard';
 import AdminReports from './components/adminLayout/AdminReports';
+import Users from './components/adminLayout/Users';
+import AdminMap from './components/adminLayout/AdminMap';
 
 
 function App() {
@@ -20,6 +22,8 @@ function App() {
         <Route index element={<AdminDashboard/>}/>
         <Route path="/admin/dashboard" element={<AdminDashboard/>}/>
         <Route path="/admin/reports" element={<AdminReports/>}/>
+        <Route path="/admin/users" element={<Users/>}/>
+        <Route path="/admin/map" element={<AdminMap/>}/>
       </Route>
    </Routes>
   );

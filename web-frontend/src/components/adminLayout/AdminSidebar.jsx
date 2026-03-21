@@ -59,6 +59,14 @@ const AdminSidebar = ({ isOpen, toggleSidebar }) => {
         >
           Users
         </Nav.Link>
+        <Nav.Link
+          as={NavLink}
+          to="/admin/map"
+          className="text-white mb-2"
+          onClick={toggleSidebar}
+        >
+          Map
+        </Nav.Link>
 
       </Nav>
     </motion.div>

@@ -1,159 +1,75 @@
 import React, { useEffect, useState } from "react";
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Badge,
-  Button,
-  Spinner,
-} from "react-bootstrap";
-import { motion } from "framer-motion";
 import axios from "axios";
+import { motion } from "framer-motion";
 
-const AdminReports = () => {
+import ReportCard from "../../components/adminLayout/ReportCard";
+import FilterBar from "../../components/adminLayout/FilterBar";
+import AssignModal from "../../components/adminLayout/AssignModal";
+
+const Report = () => {
   const [reports, setReports] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // 📡 Fetch reports
-  const fetchReports = async () => {
-    try {
-      const res = await axios.get(
-        "http://localhost:8000/api/reports",
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      setReports(res.data);
-      setLoading(false);
-    } catch (error) {
-      console.error(error);
-      setLoading(false);
-    }
-  };
+  const [filter, setFilter] = useState("All");
+  const [selectedReport, setSelectedReport] = useState(null);
 
   useEffect(() => {
     fetchReports();
   }, []);
 
-  // 🔄 Update Status
-  const handleStatusUpdate = async (id, newStatus) => {
+  const fetchReports = async () => {
     try {
-      await axios.put(
-        "http://localhost:8000/api/reports/status",
-        {
-          reportId: id,
-          status: newStatus,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      fetchReports(); // refresh after update
+      const { data } = await axios.get("http://localhost:8000/api/reports");
+      setReports(data);
     } catch (error) {
       console.error(error);
     }
   };
 
+  const updateStatus = async (id, status) => {
+    try {
+      await axios.put(`http://localhost:8000/api/reports/${id}`, { status });
+      fetchReports();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const filteredReports =
+    filter === "All"
+      ? reports
+      : reports.filter((r) => r.status === filter);
+
   return (
-    <Container fluid>
-      <h2 className="fw-bold mb-4">Road Damage Reports</h2>
+    <div className="p-4 md:p-6">
+      <motion.h1
+        className="text-2xl md:text-3xl font-bold mb-4"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        Manage Reports
+      </motion.h1>
 
-      {loading ? (
-        <div className="text-center">
-          <Spinner />
-        </div>
-      ) : (
-        <Row className="g-4">
+      <FilterBar filter={filter} setFilter={setFilter} />
 
-          {reports.map((report) => (
-            <Col md={4} key={report._id}>
-              <motion.div whileHover={{ y: -5 }}>
-                <Card className="shadow border-0 h-100">
+      <div className="grid gap-4 mt-4 sm:grid-cols-2 lg:grid-cols-3">
+        {filteredReports.map((report) => (
+          <ReportCard
+            key={report._id}
+            report={report}
+            onUpdateStatus={updateStatus}
+            onAssign={() => setSelectedReport(report)}
+          />
+        ))}
+      </div>
 
-                  {/* 📸 IMAGE */}
-                  <Card.Img
-                    variant="top"
-                    src={`http://localhost:8000/${report.image}`}
-                    style={{ height: "200px", objectFit: "cover" }}
-                  />
-
-                  <Card.Body>
-
-                    {/* 📍 LOCATION */}
-                    <h6 className="fw-semibold">
-                      📍 {report.location}
-                    </h6>
-
-                    {/* 👤 USER */}
-                    <p className="small text-muted mb-1">
-                      {report.userId?.name} ({report.userId?.email})
-                    </p>
-
-                    {/* ⚠️ DAMAGE TYPE */}
-                    <p className="mb-1">
-                      Damage: <strong>{report.damageType}</strong>
-                    </p>
-
-                    {/* 🔥 SEVERITY */}
-                    <Badge
-                      bg={
-                        report.severity === "High"
-                          ? "danger"
-                          : report.severity === "Medium"
-                          ? "warning"
-                          : "secondary"
-                      }
-                      className="me-2"
-                    >
-                      {report.severity}
-                    </Badge>
-
-                    {/* 📌 STATUS */}
-                    <Badge
-                      bg={
-                        report.status === "Reported"
-                          ? "warning"
-                          : "success"
-                      }
-                    >
-                      {report.status}
-                    </Badge>
-
-                    {/* 🔘 ACTION BUTTON */}
-                    <div className="mt-3">
-                      {report.status !== "Repaired" && (
-                        <Button
-                          size="sm"
-                          variant="success"
-                          onClick={() =>
-                            handleStatusUpdate(
-                              report._id,
-                              "Repaired"
-                            )
-                          }
-                        >
-                          Mark as Repaired
-                        </Button>
-                      )}
-                    </div>
-
-                  </Card.Body>
-                </Card>
-              </motion.div>
-            </Col>
-          ))}
-
-        </Row>
+      {selectedReport && (
+        <AssignModal
+          report={selectedReport}
+          onClose={() => setSelectedReport(null)}
+          refresh={fetchReports}
+        />
       )}
-    </Container>
+    </div>
   );
 };
 
-export default AdminReports;
+export default Report;

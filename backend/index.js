@@ -7,6 +7,7 @@ import AuthRouter from './routes/AuthRoutes.js';
 import ReportRouter from './routes/ReportRoutes.js';
 import AdminRouter from './routes/AdminRoutes.js';
 import AiRouter from './routes/AiRoutes.js';
+import UserRouter from './routes/UserRouter.js';
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ mongoose.connect(URL)
 
 app.use("/api",RepairRouter);
 app.use("/api/users",AuthRouter);
+app.use("/api/user",UserRouter);
 app.use("/api",ReportRouter);
 app.use("/api/admin",AdminRouter);
 app.use("/api", AiRouter);
