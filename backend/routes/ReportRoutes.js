@@ -26,7 +26,7 @@ cb(null,Date.now()+"-"+file.originalname);
 
 const upload = multer({storage});
 
-ReportRouter.post("/reportDamage",protect,upload.single("image"),reportDamage);
+ReportRouter.post("/reportDamage",upload.single("image"),reportDamage);
 
 ReportRouter.get("/reports",getReports);
 

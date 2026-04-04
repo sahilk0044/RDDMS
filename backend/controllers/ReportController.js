@@ -4,121 +4,155 @@ import axios from "axios";
 import FormData from "form-data";
 import fs from "fs";
 
-export const reportDamage = async (req,res)=>{
+// 🚨 REPORT DAMAGE
+export const reportDamage = async (req, res) => {
+  try {
+    const { location, latitude, longitude } = req.body;
 
-try{
+    // ✅ Basic validation
+    if (!latitude || !longitude) {
+      return res.status(400).json({ message: "Location required" });
+    }
 
-const {location,latitude,longitude} = req.body;
+    if (!req.file) {
+      return res.status(400).json({ message: "Image is required" });
+    }
 
-const last24Hours = new Date(Date.now() - 24*60*60*1000);
+    // ✅ Duplicate detection (last 24 hrs, 20 meters)
+    const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-const recentReports = await Report.find({
-createdAt: { $gte: last24Hours }
-});
+    const recentReports = await Report.find({
+      createdAt: { $gte: last24Hours },
+    });
 
-for(let report of recentReports){
+    for (let report of recentReports) {
+      const distance = calculateDistance(
+        latitude,
+        longitude,
+        report.latitude,
+        report.longitude
+      );
 
-const distance = calculateDistance(
-latitude,
-longitude,
-report.latitude,
-report.longitude
-);
+      if (distance <= 20) {
+        return res.status(400).json({
+          message: "Duplicate report detected within 20 meters",
+        });
+      }
+    }
 
-if(distance <= 20){
-return res.status(400).json({
-message:"Duplicate report detected within 20 meters"
-});
-}
+    // ---------- AI Detection ----------
+    let damageType = "Unknown";
+    let severity = "Low";
 
-}
+    try {
+      const formData = new FormData();
+      formData.append("image", fs.createReadStream(req.file.path));
 
-// ---------- AI Detection ----------
-let damageType = "Unknown";
-let severity = "Low";
+      const aiResponse = await axios.post(
+        "http://10.151.64.147:5000/detect", // ✅ AI SERVER IP
+        formData,
+        {
+          headers: formData.getHeaders(),
+          timeout: 10000, // ⏱️ prevent hanging
+        }
+      );
 
-if(req.file){
+      const detections = aiResponse.data.detections;
 
-const formData = new FormData();
-formData.append("image", fs.createReadStream(req.file.path));
+      if (detections && detections.length > 0) {
+        damageType = "Pothole";
 
-const aiResponse = await axios.post(
-"http://localhost:5000/detect",
-formData,
-{
-headers: formData.getHeaders()
-}
-);
+        const confidence = detections[0].confidence;
 
-const detections = aiResponse.data.detections;
+        if (confidence > 0.7) severity = "High";
+        else if (confidence > 0.4) severity = "Medium";
+        else severity = "Low";
+      }
+    } catch (aiError) {
+      console.log("⚠️ AI ERROR:", aiError.message);
+      // ✅ DO NOT CRASH → fallback values used
+    }
+    // ---------- END AI Detection ----------
 
-if(detections && detections.length > 0){
+    // ✅ Fix Windows path issue
+    const imagePath = req.file.path.replace(/\\/g, "/");
 
-damageType = "Pothole";
+    // ✅ Save report
+    const report = new Report({
+      userId: req.user?.id || null, // safe if auth missing
+      image: imagePath,
+      location,
+      latitude,
+      longitude,
+      damageType,
+      severity,
+      status: "Reported", // default status
+    });
 
-const confidence = detections[0].confidence;
+    await report.save();
 
-if(confidence > 0.7){
-severity = "High";
-}else if(confidence > 0.4){
-severity = "Medium";
-}else{
-severity = "Low";
-}
-
-}
-
-}
-// ---------- END AI Detection ----------
-
-const report = new Report({
-userId:req.user.id,
-image:req.file.path,
-location,
-latitude,
-longitude,
-damageType,
-severity
-});
-
-await report.save();
-
-res.status(201).json(report);
-
-}catch(error){
-
-res.status(500).json({message:error.message});
-
-}
-
+    res.status(201).json(report);
+  } catch (error) {
+    console.log("❌ SERVER ERROR:", error.message);
+    res.status(500).json({ message: "Server Error" });
+  }
 };
 
-export const getReports = async(req,res)=>{
+// 📄 GET ALL REPORTS
+export const getReports = async (req, res) => {
+  try {
+    const reports = await Report.find().populate(
+      "userId",
+      "name email"
+    );
 
-const reports = await Report.find().populate("userId","name email");
-
-res.json(reports);
-
+    res.json(reports);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Error fetching reports" });
+  }
 };
 
-export const getReportById = async(req,res)=>{
+// 📄 GET SINGLE REPORT
+export const getReportById = async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id);
 
-const report = await Report.findById(req.params.id);
+    if (!report) {
+      return res.status(404).json({ message: "Report not found" });
+    }
 
-res.json(report);
-
+    res.json(report);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Error fetching report" });
+  }
 };
 
-export const updateStatus = async(req,res)=>{
+// 🔄 UPDATE STATUS (ADMIN)
+export const updateStatus = async (req, res) => {
+  try {
+    const { status, reportId } = req.body;
 
-const {status} = req.body;
+    if (!status || !reportId) {
+      return res
+        .status(400)
+        .json({ message: "Status and reportId required" });
+    }
 
-const report = await Report.findByIdAndUpdate(
-req.body.reportId,
-{status},
-{new:true}
-);
+    const report = await Report.findByIdAndUpdate(
+      reportId,
+      { status },
+      { new: true }
+    );
 
-res.json(report);
+    if (!report) {
+      return res.status(404).json({ message: "Report not found" });
+    }
 
+    res.json(report);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Error updating status" });
+  }
 };

@@ -29,7 +29,7 @@ mongoose.connect(URL)
     });
   })
   .catch(error => console.log(error));
-
+app.use("/uploads", express.static("uploads"));
 app.use("/api",RepairRouter);
 app.use("/api/users",AuthRouter);
 app.use("/api/user",UserRouter);
