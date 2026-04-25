@@ -49,7 +49,7 @@ export const loginUser = async (req, res) => {
 
     const token = jwt.sign(
       { id: user._id },
-      "SECRET_KEY", // 🔥 replace with env later
+      process.env.JWT_SECRET, // 🔥 replace with env later
       { expiresIn: "7d" }
     );
 
@@ -61,6 +61,55 @@ export const loginUser = async (req, res) => {
         email: user.email,
       },
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+// ✅ GET PROFILE
+export const getUserProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(user);
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+// ✅ UPDATE PROFILE
+
+export const updateUserProfile = async (req, res) => {
+  try {
+    const { name, phone, location } = req.body;
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // ✅ Update text fields
+    user.name = name || user.name;
+    user.phone = phone || user.phone;
+    user.location = location || user.location;
+
+    // ✅ Handle uploaded image
+    if (req.file) {
+      user.profileImage = `/uploads/${req.file.filename}`;
+    }
+
+    const updatedUser = await user.save();
+
+    res.json(updatedUser);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

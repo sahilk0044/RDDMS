@@ -5,7 +5,8 @@ import {
 reportDamage,
 getReports,
 getReportById,
-updateStatus
+updateStatus,
+getDashboard
 } from "../controllers/ReportController.js"
 
 import {protect} from "../middleware/authMiddleware.js";
@@ -33,5 +34,7 @@ ReportRouter.get("/reports",getReports);
 ReportRouter.get("/report/:id",getReportById);
 
 ReportRouter.put("/updateStatus",protect,updateStatus);
+
+ReportRouter.get("/dashboard", protect, getDashboard);
 
 export default ReportRouter;

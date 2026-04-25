@@ -156,3 +156,49 @@ export const updateStatus = async (req, res) => {
     res.status(500).json({ message: "Error updating status" });
   }
 };
+
+// controllers/dashboardController.js
+
+
+
+export const getDashboard = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // 🔥 Get all reports of logged-in user
+    const reports = await Report.find({ userId }).sort({ createdAt: -1 });
+
+    // 🔹 Counts
+    const total = reports.length;
+
+    const pending = reports.filter(
+      (r) => r.status === "Reported" || r.status === "In Progress"
+    ).length;
+
+    const resolved = reports.filter(
+      (r) => r.status === "Resolved"
+    ).length;
+
+    // 🔹 Recent (last 5)
+    const recent = reports.slice(0, 5).map((r) => ({
+      damageType: r.damageType || "Unknown",
+      status: r.status,
+      location: r.location,
+      createdAt: r.createdAt,
+    }));
+
+    // ✅ Final response
+    res.status(200).json({
+      total,
+      pending,
+      resolved,
+      recent,
+    });
+
+  } catch (error) {
+    console.log("Dashboard Error:", error);
+    res.status(500).json({
+      message: "Failed to load dashboard",
+    });
+  }
+};

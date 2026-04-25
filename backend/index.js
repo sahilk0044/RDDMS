@@ -31,8 +31,7 @@ mongoose.connect(URL)
   .catch(error => console.log(error));
 app.use("/uploads", express.static("uploads"));
 app.use("/api",RepairRouter);
-app.use("/api/users",AuthRouter);
-app.use("/api/user",UserRouter);
+app.use("/api/users",UserRouter);
 app.use("/api",ReportRouter);
 app.use("/api/admin",AdminRouter);
 app.use("/api", AiRouter);

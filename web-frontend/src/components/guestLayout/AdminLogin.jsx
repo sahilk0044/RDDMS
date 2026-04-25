@@ -38,7 +38,7 @@ const AdminLogin = () => {
     setLoading(true);
 
     const res = await axios.post(
-      "http://localhost:8000/api/users/admin-login",
+      "http://localhost:8000/api/admin-login",
       formData
     );
 
@@ -86,10 +86,10 @@ const AdminLogin = () => {
           <Col md={5} data-aos="zoom-in">
 
             <motion.div whileHover={{ scale: 1.02 }}>
-              <Card className="shadow-lg border-0">
+              <Card className="border-0 shadow-lg">
                 <Card.Body className="p-4">
 
-                  <h3 className="text-center mb-4 fw-bold">
+                  <h3 className="mb-4 text-center fw-bold">
                     Admin Login
                   </h3>
 
