@@ -8,6 +8,8 @@ import UserSearch from "../../components/adminLayout/UserSearch";
 const Users = () => {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchUsers();
@@ -15,34 +17,78 @@ const Users = () => {
 
   const fetchUsers = async () => {
     try {
-      const { data } = await axios.get("localhost:8000/api/users");
-      setUsers(data);
-    } catch (error) {
-      console.error(error);
+      setLoading(true);
+
+      const res = await axios.get("http://localhost:8000/api/users");
+
+      // 🔥 FIX: handle both array and object response
+      const usersData = Array.isArray(res.data)
+        ? res.data
+        : res.data.users;
+
+      setUsers(usersData || []);
+      setError("");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch users");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const filteredUsers = users.filter((user) =>
-    user.name.toLowerCase().includes(search.toLowerCase())
-  );
+  // 🔍 Safe filtering
+  const filteredUsers = Array.isArray(users)
+  ? users
+      .filter((user) => user?.role === "citizen") // ✅ role filter
+      .filter((user) =>
+        user?.name?.toLowerCase().includes(search.toLowerCase())
+      )
+  : [];
 
   return (
     <div className="p-4 md:p-6">
+
+      {/* 🔥 HEADER */}
       <motion.h1
-        className="text-2xl md:text-3xl font-bold mb-4"
+        className="mb-4 text-2xl font-bold md:text-3xl"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        Manage Users
+        👥 Manage Users
       </motion.h1>
 
+      {/* 🔍 SEARCH */}
       <UserSearch search={search} setSearch={setSearch} />
 
+      {/* ⏳ LOADING */}
+      {loading && (
+        <div className="mt-5 text-center">
+          <p>Loading users...</p>
+        </div>
+      )}
+
+      {/* ❌ ERROR */}
+      {error && (
+        <div className="mt-3 text-center text-danger">
+          {error}
+        </div>
+      )}
+
+      {/* 📭 EMPTY */}
+      {!loading && filteredUsers.length === 0 && (
+        <div className="mt-5 text-center text-muted">
+          <h5>No users found</h5>
+        </div>
+      )}
+
+      {/* 👥 USERS GRID */}
       <div className="grid gap-4 mt-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredUsers.map((user) => (
-          <UserCard key={user._id} user={user} />
-        ))}
+        {!loading &&
+          filteredUsers.map((user) => (
+            <UserCard key={user._id} user={user} />
+          ))}
       </div>
+
     </div>
   );
 };

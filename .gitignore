@@ -51,8 +51,7 @@ dataset/
 datasets/
 data/
 
-model/
-models/
+
 *.pt
 *.onnx
 *.weights

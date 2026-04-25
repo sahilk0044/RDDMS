@@ -3,7 +3,6 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import RepairRouter from './routes/RepairRoutes.js';
-import AuthRouter from './routes/AuthRoutes.js';
 import ReportRouter from './routes/ReportRoutes.js';
 import AdminRouter from './routes/AdminRoutes.js';
 import AiRouter from './routes/AiRoutes.js';

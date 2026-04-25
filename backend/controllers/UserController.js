@@ -68,49 +68,76 @@ export const loginUser = async (req, res) => {
 
 
 
-// ✅ GET PROFILE
-export const getUserProfile = async (req, res) => {
+// 📦 GET ALL USERS (Admin only recommended)
+export const getAllUsers = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
+    const users = await User.find().select("-password"); // 🔐 hide password
+
+    res.status(200).json({
+      count: users.length,
+      users,
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching users" });
+  }
+};
+
+// 🔍 GET USER BY ID
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id).select("-password"); // 🔐 hide password
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.json(user);
+    res.status(200).json(user);
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(error);
+
+    // ❗ invalid ObjectId error
+    if (error.name === "CastError") {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    res.status(500).json({ message: "Error fetching user" });
   }
 };
 
 
-// ✅ UPDATE PROFILE
 
-export const updateUserProfile = async (req, res) => {
+// 🗑 DELETE USER
+export const deleteUser = async (req, res) => {
   try {
-    const { name, phone, location } = req.body;
+    const { id } = req.params;
 
-    const user = await User.findById(req.user.id);
+    // Check if user exists
+    const user = await User.findById(id);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // ✅ Update text fields
-    user.name = name || user.name;
-    user.phone = phone || user.phone;
-    user.location = location || user.location;
+    // Delete user
+    await user.deleteOne();
 
-    // ✅ Handle uploaded image
-    if (req.file) {
-      user.profileImage = `/uploads/${req.file.filename}`;
+    res.status(200).json({
+      message: "User deleted successfully",
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    // Invalid ID format
+    if (error.name === "CastError") {
+      return res.status(400).json({ message: "Invalid user ID" });
     }
 
-    const updatedUser = await user.save();
-
-    res.json(updatedUser);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Error deleting user" });
   }
 };

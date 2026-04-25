@@ -5,11 +5,44 @@ import FormData from "form-data";
 import fs from "fs";
 
 // 🚨 REPORT DAMAGE
+
+// 📍 Get readable location from coordinates
+const getLocationName = async (lat, lng) => {
+  try {
+    const res = await axios.get(
+      "https://nominatim.openstreetmap.org/reverse",
+      {
+        params: {
+          lat,
+          lon: lng,
+          format: "json",
+        },
+        headers: {
+          "User-Agent": "RDDMS-App", // 🔥 REQUIRED (VERY IMPORTANT)
+        },
+      }
+    );
+
+    const addr = res.data.address;
+
+    return `${addr.city || addr.town || addr.village || "Unknown"}, ${
+      addr.state || ""
+    }`;
+
+  } catch (err) {
+    console.log("❌ LOCATION ERROR:", err.message);
+    return null; // ❗ DON'T RETURN "Unknown Location"
+  }
+};
 export const reportDamage = async (req, res) => {
   try {
-    const { location, latitude, longitude } = req.body;
+    let { location, latitude, longitude } = req.body;
 
-    // ✅ Basic validation
+    // 🔥 Convert to numbers (important)
+    latitude = Number(latitude);
+    longitude = Number(longitude);
+
+    // ✅ Validation
     if (!latitude || !longitude) {
       return res.status(400).json({ message: "Location required" });
     }
@@ -18,7 +51,7 @@ export const reportDamage = async (req, res) => {
       return res.status(400).json({ message: "Image is required" });
     }
 
-    // ✅ Duplicate detection (last 24 hrs, 20 meters)
+    // ---------- DUPLICATE CHECK ----------
     const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     const recentReports = await Report.find({
@@ -40,7 +73,7 @@ export const reportDamage = async (req, res) => {
       }
     }
 
-    // ---------- AI Detection ----------
+    // ---------- AI DETECTION ----------
     let damageType = "Unknown";
     let severity = "Low";
 
@@ -49,11 +82,11 @@ export const reportDamage = async (req, res) => {
       formData.append("image", fs.createReadStream(req.file.path));
 
       const aiResponse = await axios.post(
-        "http://10.151.64.147:5000/detect", // ✅ AI SERVER IP
+        "http://10.151.64.147:5000/detect",
         formData,
         {
           headers: formData.getHeaders(),
-          timeout: 10000, // ⏱️ prevent hanging
+          timeout: 10000,
         }
       );
 
@@ -70,28 +103,34 @@ export const reportDamage = async (req, res) => {
       }
     } catch (aiError) {
       console.log("⚠️ AI ERROR:", aiError.message);
-      // ✅ DO NOT CRASH → fallback values used
     }
-    // ---------- END AI Detection ----------
 
-    // ✅ Fix Windows path issue
+    // ---------- LOCATION NAME ----------
+    const locationName = await getLocationName(latitude, longitude);
+
+    // ---------- IMAGE PATH FIX ----------
     const imagePath = req.file.path.replace(/\\/g, "/");
 
-    // ✅ Save report
+    // ---------- SAVE REPORT ----------
     const report = new Report({
-      userId: req.user?.id || null, // safe if auth missing
+      userId: req.user?.id || null,
       image: imagePath,
-      location,
+      location, // optional raw location
+      locationName: locationName || null, // ✅ better
       latitude,
       longitude,
       damageType,
       severity,
-      status: "Reported", // default status
+      status: "reported", // 🔥 FIXED (lowercase)
     });
 
     await report.save();
 
-    res.status(201).json(report);
+    res.status(201).json({
+      message: "Report submitted successfully",
+      report,
+    });
+
   } catch (error) {
     console.log("❌ SERVER ERROR:", error.message);
     res.status(500).json({ message: "Server Error" });
@@ -132,16 +171,21 @@ export const getReportById = async (req, res) => {
 // 🔄 UPDATE STATUS (ADMIN)
 export const updateStatus = async (req, res) => {
   try {
-    const { status, reportId } = req.body;
+    const { status } = req.body;
+    const { id } = req.params;
 
-    if (!status || !reportId) {
-      return res
-        .status(400)
-        .json({ message: "Status and reportId required" });
+    if (!status) {
+      return res.status(400).json({ message: "Status is required" });
+    }
+
+    const validStatus = ["reported", "in_progress", "repaired"];
+
+    if (!validStatus.includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
     }
 
     const report = await Report.findByIdAndUpdate(
-      reportId,
+      id,
       { status },
       { new: true }
     );
@@ -150,13 +194,16 @@ export const updateStatus = async (req, res) => {
       return res.status(404).json({ message: "Report not found" });
     }
 
-    res.json(report);
-  } catch (error) {
-    console.log(error);
+    res.json({
+      message: "Status updated",
+      report,
+    });
+
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Error updating status" });
   }
 };
-
 // controllers/dashboardController.js
 
 
@@ -200,5 +247,43 @@ export const getDashboard = async (req, res) => {
     res.status(500).json({
       message: "Failed to load dashboard",
     });
+  }
+};
+
+
+
+export const deleteReport = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const report = await Report.findById(id);
+    if (!report) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
+    await report.deleteOne();
+
+    res.status(200).json({ message: "Report deleted successfully" });
+  } catch (error) {
+    console.error(error);
+
+    if (error.name === "CastError") {
+      return res.status(400).json({ message: "Invalid report ID" });
+    }
+
+    res.status(500).json({ message: "Error deleting report" });
+  }
+};
+
+export const getRecentReports = async (req, res) => {
+  try {
+    const reports = await Report.find()
+      .sort({ createdAt: -1 }) // 🔥 newest first
+      .limit(5); // show latest 5
+
+    res.json(reports);
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -6,67 +6,177 @@ import {
   TouchableOpacity,
   ScrollView,
   StatusBar,
+  ActivityIndicator,
+  Image,
 } from "react-native";
 import { AuthContext } from "../context/AuthContext";
+import axios from "axios";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
 
 export default function HomeScreen({ navigation }) {
-  const { logout } = useContext(AuthContext);
+  const { logout, userToken } = useContext(AuthContext);
 
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+ useFocusEffect(
+  useCallback(() => {
+    fetchReports();
+  }, [])
+);
+
+  const fetchReports = async (isInitial = false) => {
+  try {
+    if (isInitial) setLoading(true); // ✅ only first time
+
+    const res = await axios.get(
+      "http://10.100.149.147:8000/api/reports",
+      {
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+        },
+      }
+    );
+
+    const data = Array.isArray(res.data) ? res.data : [];
+
+    const latestReports = data
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 5);
+
+    // ✅ update only if data actually changed
+    setReports((prev) => {
+      if (JSON.stringify(prev) !== JSON.stringify(latestReports)) {
+        return latestReports;
+      }
+      return prev;
+    });
+
+    console.log("HOME REPORTS:", latestReports);
+
+  } catch (err) {
+    console.log("Error:", err.message);
+  } finally {
+    if (isInitial) setLoading(false); // ✅ prevent flicker
+  }
+};
+
+useEffect(() => {
+  fetchReports(true); // initial load
+
+  const interval = setInterval(() => {
+    fetchReports(false); // background refresh
+  }, 8000); // every 8 sec
+
+  return () => clearInterval(interval);
+}, []);
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.greeting}>RDDMS Dashboard</Text>
-        <Text style={styles.subText}>
-          Monitor and report road damages
-        </Text>
+        <Text style={styles.title}>RDDMS Dashboard</Text>
+        <Text style={styles.subtitle}>Monitor road damages</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Main Feature Card */}
-        <View style={styles.mainCard}>
-          <Text style={styles.mainTitle}>Report Road Damage</Text>
-          <Text style={styles.mainText}>
-            Capture and report potholes or road issues instantly
+        
+        {/* Report Card */}
+        <View style={styles.cardMain}>
+          <Text style={styles.cardTitle}>Report Road Damage</Text>
+          <Text style={styles.cardText}>
+            Capture potholes or road issues instantly
           </Text>
 
-          <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate("Report")}  >
-            <Text style={styles.primaryButtonText}>📸 Report Now</Text>
+          <TouchableOpacity
+            style={styles.buttonPrimary}
+            onPress={() => navigation.navigate("Report")}
+          >
+            <Text style={styles.buttonText}>📸 Report Now</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Quick Actions */}
-        <Text style={styles.sectionTitle}>Features</Text>
+        {/* Features */}
+        <Text style={styles.section}>Features</Text>
 
-        <View style={styles.grid}>
+        <View style={styles.row}>
           <TouchableOpacity
             style={styles.card}
             onPress={() => navigation.navigate("Map")}
           >
-            <Text style={styles.cardTitle}>🗺️ View Map</Text>
-            <Text style={styles.cardSub}>See reported issues</Text>
+            <Text style={styles.cardTitleSmall}>🗺️ View Map</Text>
+            <Text style={styles.cardSub}>See issues</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("MyReports")}>
-            <Text style={styles.cardTitle}>📊 My Reports</Text>
-            <Text style={styles.cardSub}>Track your submissions</Text>
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() => navigation.navigate("MyReports")}
+          >
+            <Text style={styles.cardTitleSmall}>📊 My Reports</Text>
+            <Text style={styles.cardSub}>Track reports</Text>
           </TouchableOpacity>
-
         </View>
 
-        {/* Recent Activity */}
-        <Text style={styles.sectionTitle}>Recent Reports</Text>
+        {/* 🔥 Recent Reports */}
+        <Text style={styles.section}>Recent Reports</Text>
 
-        <View style={styles.activityCard}>
-          <Text style={styles.activityText}>
-            No reports submitted yet
-          </Text>
+        <View style={styles.cardBox}>
+          {loading ? (
+            <ActivityIndicator color="#2563EB" />
+          ) : reports.length === 0 ? (
+            <Text style={styles.empty}>No reports yet</Text>
+          ) : (
+            reports.map((item) => (
+              <TouchableOpacity
+                key={item._id}
+                style={styles.reportItem}
+                onPress={() =>
+                  navigation.navigate("ReportDetail", {
+                    reportId: item._id,
+                  })
+                }
+              >
+                {/* 🖼 IMAGE */}
+                <Image
+                  source={{
+                    uri: item.image
+                      ? `http://10.100.149.147:8000/${item.image}`
+                      : "https://via.placeholder.com/150",
+                  }}
+                  style={styles.reportImage}
+                />
+
+                {/* 📄 DETAILS */}
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.reportTitle}>
+                    📍 {
+                      item.locationName ||
+                      item.location ||
+                      (item.latitude && item.longitude
+                        ? `${item.latitude}, ${item.longitude}`
+                        : "Location unavailable")
+                    }
+                  </Text>
+
+                  <Text style={styles.reportMeta}>
+                    {item.status} • {item.severity}
+                  </Text>
+
+                  <Text style={styles.reportDate}>
+                    {item.createdAt
+                      ? new Date(item.createdAt).toLocaleString()
+                      : "No date"}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
         {/* Logout */}
-        <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+        <TouchableOpacity style={styles.logout} onPress={logout}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -83,112 +193,152 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: "#1E40AF",
     paddingTop: 60,
-    paddingBottom: 25,
+    paddingBottom: 20,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    elevation: 5,
   },
 
-  greeting: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#FFFFFF",
+  title: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "bold",
   },
 
-  subText: {
-    color: "#DBEAFE",
-    marginTop: 5,
+  subtitle: {
+    color: "#c7d2fe",
+    marginTop: 4,
+    fontSize: 13,
   },
 
   content: {
-    padding: 20,
+    padding: 16,
   },
 
-  mainCard: {
+  cardMain: {
     backgroundColor: "#2563EB",
-    padding: 20,
-    borderRadius: 16,
+    padding: 16,
+    borderRadius: 14,
     marginBottom: 20,
+    elevation: 4,
   },
 
-  mainTitle: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "700",
+  cardTitle: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 
-  mainText: {
-    color: "#DBEAFE",
-    marginVertical: 10,
+  cardText: {
+    color: "#dbeafe",
+    marginVertical: 8,
   },
 
-  primaryButton: {
-    backgroundColor: "#FFFFFF",
-    padding: 12,
-    borderRadius: 10,
+  buttonPrimary: {
+    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 8,
     alignItems: "center",
   },
 
-  primaryButtonText: {
+  buttonText: {
     color: "#2563EB",
-    fontWeight: "700",
+    fontWeight: "bold",
   },
 
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
+  section: {
+    fontWeight: "bold",
     marginBottom: 10,
+    fontSize: 16,
     color: "#111827",
   },
 
-  grid: {
+  row: {
     flexDirection: "row",
-    flexWrap: "wrap",
     justifyContent: "space-between",
     marginBottom: 20,
   },
 
   card: {
+    backgroundColor: "#fff",
+    padding: 14,
+    borderRadius: 12,
     width: "48%",
-    backgroundColor: "#FFFFFF",
-    padding: 18,
-    borderRadius: 14,
-    marginBottom: 12,
     elevation: 3,
   },
 
-  cardTitle: {
+  cardTitleSmall: {
+    fontWeight: "bold",
     fontSize: 14,
-    fontWeight: "600",
-    color: "#111827",
   },
 
   cardSub: {
     fontSize: 12,
     color: "#6B7280",
-    marginTop: 4,
+    marginTop: 2,
   },
 
-  activityCard: {
-    backgroundColor: "#FFFFFF",
-    padding: 18,
+  cardBox: {
+    backgroundColor: "#fff",
+    padding: 14,
     borderRadius: 14,
     marginBottom: 20,
+    elevation: 4,
   },
 
-  activityText: {
+  empty: {
     color: "#6B7280",
+    textAlign: "center",
+    marginTop: 10,
   },
 
-  logoutButton: {
+  /* 🔥 REPORT ITEM */
+  reportItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+
+  reportImage: {
+    width: 75,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 10,
+  },
+
+  reportTitle: {
+    fontWeight: "600",
+    fontSize: 14,
+    color: "#111827",
+  },
+
+  reportMeta: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+
+  reportDate: {
+    fontSize: 11,
+    color: "#9CA3AF",
+    marginTop: 2,
+  },
+
+  logout: {
     backgroundColor: "#111827",
-    padding: 15,
+    padding: 14,
     borderRadius: 12,
     alignItems: "center",
+    marginTop: 10,
   },
 
   logoutText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 14,
   },
 });

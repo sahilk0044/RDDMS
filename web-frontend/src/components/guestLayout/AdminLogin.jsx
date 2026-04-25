@@ -38,7 +38,7 @@ const AdminLogin = () => {
     setLoading(true);
 
     const res = await axios.post(
-      "http://localhost:8000/api/admin-login",
+      "http://localhost:8000/api/admin/admin-login",
       formData
     );
 

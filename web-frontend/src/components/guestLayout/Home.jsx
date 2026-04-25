@@ -4,57 +4,68 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import AOS from "aos";
 import "aos/dist/aos.css";
+import {
+  FaRoad,
+  FaMapMarkedAlt,
+  FaBrain,
+  FaChartLine,
+} from "react-icons/fa";
 
 const Home = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    AOS.init({
-      duration: 1000,
-      once: true,
-    });
+    AOS.init({ duration: 1000, once: true });
   }, []);
 
   return (
     <div style={{ marginTop: "80px" }}>
-      
-      {/* 🚧 HERO SECTION */}
-      <section className="bg-dark text-light py-5">
+
+      {/* 🔥 HERO SECTION */}
+      <section
+        style={{
+          background: "linear-gradient(135deg, #0f2027, #203a43, #2c5364)",
+          color: "white",
+          padding: "80px 0",
+        }}
+      >
         <Container>
           <Row className="align-items-center">
 
             <Col md={6}>
               <motion.h1
-                initial={{ x: -80, opacity: 0 }}
+                initial={{ x: -60, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
-                transition={{ duration: 0.8 }}
-                className="fw-bold"
+                className="fw-bold display-5"
               >
-                AI-Based Road Damage Detection & Monitoring
+                🚧 RDDMS
               </motion.h1>
 
-              <p className="mt-3 text-muted">
-                Detect potholes, cracks, and road damages in real-time using AI.
-                Improve road safety and help authorities respond faster with smart monitoring.
+              <h3 className="mt-3 fw-light">
+                Smart Road Damage Detection & Monitoring
+              </h3>
+
+              <p className="mt-3 text-light">
+                AI-powered system to detect potholes, cracks and road damages in
+                real-time. Improve safety and enable faster maintenance.
               </p>
 
-              <motion.div whileHover={{ scale: 1.05 }}>
-                <Button
-                  variant="warning"
-                  size="lg"
-                  className="mt-3"
-                  onClick={() => navigate("/admin/login")}
-                >
-                  Admin Login
-                </Button>
-              </motion.div>
+              <Button
+                variant="warning"
+                size="lg"
+                className="px-4 mt-3"
+                onClick={() => navigate("/admin/login")}
+              >
+                Get Started
+              </Button>
             </Col>
 
-            <Col md={6} data-aos="zoom-in">
+            <Col md={6} className="text-center">
               <img
                 src="https://cdn-icons-png.flaticon.com/512/854/854878.png"
-                alt="road damage"
+                alt="road"
                 className="img-fluid"
+                style={{ maxHeight: "300px" }}
               />
             </Col>
 
@@ -62,40 +73,45 @@ const Home = () => {
         </Container>
       </section>
 
-      {/* 🧠 FEATURES */}
-      <section className="py-5">
+      {/* ⚡ FEATURES */}
+      <section className="py-5 bg-light">
         <Container>
-          <h2 className="text-center fw-bold mb-5" data-aos="fade-up">
-            Key Features
+          <h2 className="mb-5 text-center fw-bold">
+            🚀 Core Features
           </h2>
 
           <Row className="g-4">
 
             {[
               {
-                title: "AI Damage Detection",
-                desc: "Detect potholes and cracks using image processing and AI.",
+                icon: <FaBrain size={30} />,
+                title: "AI Detection",
+                desc: "Advanced AI model detects road damages instantly.",
               },
               {
-                title: "Real-Time Monitoring",
-                desc: "Track road conditions and damages instantly.",
+                icon: <FaMapMarkedAlt size={30} />,
+                title: "Live Location",
+                desc: "Automatically tags exact damage location.",
               },
               {
-                title: "Location Tagging",
-                desc: "Automatically capture and store damage location.",
+                icon: <FaRoad size={30} />,
+                title: "Damage Tracking",
+                desc: "Monitor potholes and cracks across regions.",
               },
               {
-                title: "Admin Dashboard",
-                desc: "Authorities can monitor and manage reports easily.",
+                icon: <FaChartLine size={30} />,
+                title: "Analytics",
+                desc: "Insights for smarter infrastructure decisions.",
               },
             ].map((item, index) => (
-              <Col md={3} key={index} data-aos="fade-up">
+              <Col md={3} sm={6} key={index}>
                 <motion.div whileHover={{ y: -10 }}>
-                  <Card className="shadow border-0 h-100">
+                  <Card className="p-3 text-center border-0 shadow-lg h-100">
                     <Card.Body>
-                      <Card.Title className="fw-semibold">
-                        {item.title}
-                      </Card.Title>
+                      <div className="mb-3 text-warning">
+                        {item.icon}
+                      </div>
+                      <Card.Title>{item.title}</Card.Title>
                       <Card.Text className="text-muted">
                         {item.desc}
                       </Card.Text>
@@ -110,23 +126,28 @@ const Home = () => {
       </section>
 
       {/* ⚙️ HOW IT WORKS */}
-      <section className="bg-light py-5">
+      <section className="py-5">
         <Container>
-          <h2 className="text-center fw-bold mb-5" data-aos="fade-up">
-            How It Works
+          <h2 className="mb-5 text-center fw-bold">
+            ⚙️ How It Works
           </h2>
 
           <Row className="text-center g-4">
 
             {[
-              "Capture road image",
-              "AI analyzes damage",
-              "Location is tagged",
-              "Report sent to authorities",
+              "📸 Capture Image",
+              "🤖 AI Detection",
+              "📍 Location Tagging",
+              "📤 Report Submission",
             ].map((step, index) => (
-              <Col md={3} key={index} data-aos="zoom-in">
+              <Col md={3} sm={6} key={index}>
                 <motion.div whileHover={{ scale: 1.05 }}>
-                  <div className="p-4 bg-white shadow rounded">
+                  <div
+                    className="p-4 rounded shadow"
+                    style={{
+                      background: "#ffffff",
+                    }}
+                  >
                     <h5 className="fw-bold">Step {index + 1}</h5>
                     <p className="text-muted">{step}</p>
                   </div>
@@ -138,24 +159,24 @@ const Home = () => {
         </Container>
       </section>
 
-      {/* 📊 IMPACT SECTION */}
-      <section className="py-5">
+      {/* 📊 WHY SECTION */}
+      <section className="py-5 bg-light">
         <Container>
-          <h2 className="text-center fw-bold mb-5" data-aos="fade-up">
-            Why RDDMS?
+          <h2 className="mb-5 text-center fw-bold">
+            🌍 Why RDDMS?
           </h2>
 
           <Row className="text-center g-4">
 
             {[
-              "Improves road safety",
-              "Faster maintenance response",
-              "Smart city integration",
-              "Data-driven decisions",
+              "🚧 Safer Roads",
+              "⚡ Faster Repairs",
+              "🏙️ Smart City Ready",
+              "📊 Data Insights",
             ].map((item, index) => (
-              <Col md={3} key={index} data-aos="fade-up">
+              <Col md={3} sm={6} key={index}>
                 <motion.div whileHover={{ scale: 1.05 }}>
-                  <div className="p-4 border rounded shadow-sm">
+                  <div className="p-4 bg-white border rounded shadow-sm">
                     <p className="fw-semibold">{item}</p>
                   </div>
                 </motion.div>
@@ -166,30 +187,30 @@ const Home = () => {
         </Container>
       </section>
 
-      {/* 📢 CTA */}
-      <section className="bg-warning text-dark py-5 text-center">
+      {/* 🚀 CTA */}
+      <section
+        style={{
+          background: "linear-gradient(135deg, #ffb347, #ffcc33)",
+          padding: "60px 0",
+        }}
+        className="text-center"
+      >
         <Container>
-          <motion.h2
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="fw-bold"
-          >
-            Smart Roads Start With Smart Monitoring
-          </motion.h2>
+          <h2 className="fw-bold">
+            Ready to Transform Road Monitoring?
+          </h2>
 
           <p className="mt-3">
-            Use AI to detect road damages early and improve infrastructure quality.
+            Join the future of smart infrastructure with AI-powered detection.
           </p>
 
-          <motion.div whileHover={{ scale: 1.1 }}>
-            <Button
-              variant="dark"
-              size="lg"
-              onClick={() => navigate("/admin/login")}
-            >
-              Go to Admin Panel
-            </Button>
-          </motion.div>
+          <Button
+            variant="dark"
+            size="lg"
+            onClick={() => navigate("/admin/login")}
+          >
+            Open Dashboard
+          </Button>
         </Container>
       </section>
 

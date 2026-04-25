@@ -6,7 +6,9 @@ reportDamage,
 getReports,
 getReportById,
 updateStatus,
-getDashboard
+getDashboard,
+deleteReport,
+getRecentReports
 } from "../controllers/ReportController.js"
 
 import {protect} from "../middleware/authMiddleware.js";
@@ -33,8 +35,10 @@ ReportRouter.get("/reports",getReports);
 
 ReportRouter.get("/report/:id",getReportById);
 
-ReportRouter.put("/updateStatus",protect,updateStatus);
+ReportRouter.put("/reports/:id",protect,updateStatus);
 
 ReportRouter.get("/dashboard", protect, getDashboard);
+ReportRouter.delete("/reports/:id", protect, deleteReport);
+ReportRouter.get("/recent-reports", protect, getRecentReports);
 
 export default ReportRouter;

@@ -13,16 +13,17 @@ const containerStyle = {
   height: "100%",
 };
 
-const center = {
+// fallback center (Bangalore)
+const defaultCenter = {
   lat: 12.9716,
-  lng: 77.5946, // Bangalore
+  lng: 77.5946,
 };
 
 const getMarkerIcon = (status) => {
-  if (status === "In Progress") {
+  if (status === "in_progress") {
     return "http://maps.google.com/mapfiles/ms/icons/yellow-dot.png";
   }
-  if (status === "Completed") {
+  if (status === "repaired") {
     return "http://maps.google.com/mapfiles/ms/icons/green-dot.png";
   }
   return "http://maps.google.com/mapfiles/ms/icons/red-dot.png";
@@ -31,6 +32,7 @@ const getMarkerIcon = (status) => {
 const AdminMap = () => {
   const [reports, setReports] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [center, setCenter] = useState(defaultCenter);
 
   useEffect(() => {
     fetchReports();
@@ -38,67 +40,124 @@ const AdminMap = () => {
 
   const fetchReports = async () => {
     try {
-      const { data } = await axios.get("/api/reports");
-      setReports(data);
+      const token = localStorage.getItem("token");
+
+      const { data } = await axios.get(
+        "http://localhost:8000/api/reports",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const reportsData = Array.isArray(data) ? data : data.reports;
+
+      setReports(reportsData || []);
+
+      // 🔥 auto-center on first report
+      const firstValid = reportsData.find(
+        (r) => r.latitude && r.longitude
+      );
+
+      if (firstValid) {
+        setCenter({
+          lat: Number(firstValid.latitude),
+          lng: Number(firstValid.longitude),
+        });
+      }
+
     } catch (error) {
-      console.error(error);
+      console.error("Error fetching reports:", error);
     }
   };
 
   return (
     <div className="p-4 md:p-6 h-[90vh]">
+
       <motion.h1
-        className="text-2xl md:text-3xl font-bold mb-4"
+        className="mb-4 text-2xl font-bold md:text-3xl"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        Road Damage Map
+        🗺️ Road Damage Map
       </motion.h1>
 
-      <div className="h-full w-full rounded-2xl overflow-hidden shadow-lg">
+      <div className="w-full h-full overflow-hidden shadow-lg rounded-2xl">
+
         <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}>
-          <GoogleMap mapContainerStyle={containerStyle} center={center} zoom={12}>
+          <GoogleMap
+            mapContainerStyle={containerStyle}
+            center={center}
+            zoom={12}
+          >
+
+            {/* 📍 MARKERS */}
             {reports
               .filter((r) => r.latitude && r.longitude)
               .map((report) => (
                 <Marker
                   key={report._id}
                   position={{
-                    lat: report.latitude,
-                    lng: report.longitude,
+                    lat: Number(report.latitude),
+                    lng: Number(report.longitude),
                   }}
                   icon={getMarkerIcon(report.status)}
                   onClick={() => setSelected(report)}
                 />
               ))}
 
+            {/* 📌 INFO WINDOW */}
             {selected && (
               <InfoWindow
                 position={{
-                  lat: selected.latitude,
-                  lng: selected.longitude,
+                  lat: Number(selected.latitude),
+                  lng: Number(selected.longitude),
                 }}
                 onCloseClick={() => setSelected(null)}
               >
-                <div className="w-48">
+                <div style={{ width: "200px" }}>
+
+                  {/* 🖼 IMAGE */}
                   <img
-                    src={selected.image}
-                    alt=""
-                    className="w-full h-24 object-cover rounded"
+                    src={
+                      selected.image
+                        ? `http://localhost:8000/${selected.image}`
+                        : "https://via.placeholder.com/200x100"
+                    }
+                    alt="damage"
+                    style={{
+                      width: "100%",
+                      height: "100px",
+                      objectFit: "cover",
+                      borderRadius: "6px",
+                    }}
                   />
-                  <h3 className="font-bold mt-1">
-                    {selected.damageType || "Damage"}
-                  </h3>
-                  <p className="text-xs">{selected.location}</p>
-                  <p className="text-xs">Severity: {selected.severity}</p>
-                  <p className="text-xs font-semibold">
+
+                  {/* 📄 DETAILS */}
+                  <h6 style={{ marginTop: "5px" }}>
+                    {selected.damageType || "Road Damage"}
+                  </h6>
+
+                  <p style={{ fontSize: "12px", margin: 0 }}>
+                    📍 {selected.locationName || selected.location || "Unknown"}
+                  </p>
+
+                  <p style={{ fontSize: "12px", margin: 0 }}>
+                    Severity: {selected.severity || "N/A"}
+                  </p>
+
+                  <p style={{ fontSize: "12px", fontWeight: "bold" }}>
                     Status: {selected.status}
                   </p>
+
                 </div>
               </InfoWindow>
             )}
+
           </GoogleMap>
         </LoadScript>
+
       </div>
     </div>
   );

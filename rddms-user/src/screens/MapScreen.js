@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -11,6 +11,7 @@ import API from "../api/api";
 export default function MapScreen({ navigation }) {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const mapRef = useRef(null);
 
   const fetchReports = async () => {
     try {
@@ -26,6 +27,25 @@ export default function MapScreen({ navigation }) {
   useEffect(() => {
     fetchReports();
   }, []);
+
+  // ✅ Auto-fit map to all report locations
+  useEffect(() => {
+    if (reports.length > 0 && mapRef.current) {
+      const validCoords = reports
+        .filter((r) => r.latitude && r.longitude)
+        .map((r) => ({
+          latitude: r.latitude,
+          longitude: r.longitude,
+        }));
+
+      if (validCoords.length > 0) {
+        mapRef.current.fitToCoordinates(validCoords, {
+          edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+          animated: true,
+        });
+      }
+    }
+  }, [reports]);
 
   const getMarkerColor = (status) => {
     if (status === "Resolved") return "green";
@@ -43,9 +63,10 @@ export default function MapScreen({ navigation }) {
 
   return (
     <MapView
+      ref={mapRef}
       style={styles.map}
       initialRegion={{
-        latitude: 12.9716,
+        latitude: 12.9716, // fallback only
         longitude: 77.5946,
         latitudeDelta: 0.05,
         longitudeDelta: 0.05,
@@ -76,7 +97,11 @@ export default function MapScreen({ navigation }) {
                 </Text>
 
                 <Text>Status: {item.status}</Text>
-                <Text>{item.location}</Text>
+
+                {/* ✅ FIXED */}
+                <Text>
+                  {item.locationName || item.location || "Unknown"}
+                </Text>
 
                 <Text style={styles.link}>
                   Tap for details →

@@ -1,16 +1,36 @@
 import React, { useEffect, useState } from "react";
-import { Container, Row, Col, Card, Spinner } from "react-bootstrap";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Spinner,
+  Alert,
+} from "react-bootstrap";
 import { motion } from "framer-motion";
 import axios from "axios";
+import {
+  FaClipboardList,
+  FaExclamationTriangle,
+  FaCheckCircle,
+  FaFire,
+} from "react-icons/fa";
 
 const AdminDashboard = () => {
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState({
+    totalReports: 0,
+    pendingReports: 0,
+    resolvedReports: 0,
+    highSeverity: 0,
+  });
+
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const fetchStats = async () => {
     try {
       const res = await axios.get(
-        "http://localhost:8000/api/admin/stats", // ✅ match your API
+        "http://localhost:8000/api/admin/stats",
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -19,9 +39,11 @@ const AdminDashboard = () => {
       );
 
       setStats(res.data);
+      setError("");
       setLoading(false);
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load dashboard data");
       setLoading(false);
     }
   };
@@ -29,81 +51,123 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchStats();
 
-    const interval = setInterval(fetchStats, 5000); // 🔄 refresh
-
+    const interval = setInterval(fetchStats, 5000);
     return () => clearInterval(interval);
   }, []);
 
+  const cards = [
+  {
+    title: "Total Reports",
+    value: stats.totalReports,
+    color: "warning",
+    icon: <FaClipboardList />,
+  },
+  {
+    title: "Reported",
+    value: stats.reported || 0,
+    color: "danger",
+    icon: <FaExclamationTriangle />,
+  },
+  {
+    title: "In Progress",
+    value: stats.inProgress || 0,
+    color: "primary",
+    icon: <FaFire />,
+  },
+  {
+    title: "Repaired",
+    value: stats.repaired || 0,
+    color: "success",
+    icon: <FaCheckCircle />,
+  },
+];
   return (
-    <Container fluid>
-      <h2 className="fw-bold mb-4">Dashboard Overview</h2>
+    <Container fluid style={{ padding: "20px" }}>
+      
+      {/* 🔥 HEADER */}
+      <div
+        style={{
+          background: "linear-gradient(135deg, #1e3c72, #2a5298)",
+          padding: "20px",
+          borderRadius: "12px",
+          color: "white",
+          marginBottom: "25px",
+        }}
+      >
+        <h2 className="m-0 fw-bold">🚧 RDDMS Admin Dashboard</h2>
+        <p className="mb-0 text-light">
+          Monitor road damage reports in real-time
+        </p>
+      </div>
 
-      {loading ? (
-        <div className="text-center">
+      {/* ⏳ LOADING */}
+      {loading && (
+        <div className="mt-5 text-center">
           <Spinner animation="border" />
         </div>
-      ) : (
+      )}
+
+      {/* ❌ ERROR */}
+      {error && <Alert variant="danger">{error}</Alert>}
+
+      {/* 📊 STATS */}
+      {!loading && !error && (
         <Row className="g-4">
+          {cards.map((card, index) => (
+            <Col lg={3} md={6} key={index}>
+              <motion.div whileHover={{ scale: 1.05 }}>
+                <Card
+                  className="border-0 shadow-lg"
+                  style={{
+                    borderRadius: "15px",
+                    padding: "20px",
+                  }}
+                >
+                  <div className="d-flex justify-content-between align-items-center">
+                    
+                    <div>
+                      <h6 className="text-muted">{card.title}</h6>
+                      <h2 className={`fw-bold text-${card.color}`}>
+                        {card.value}
+                      </h2>
+                    </div>
 
-          {/* Total Reports */}
-          <Col md={3} sm={6}>
-            <motion.div whileHover={{ scale: 1.05 }}>
-              <Card className="shadow border-0 text-center p-3">
-                <h6>Total Reports</h6>
-                <h3 className="fw-bold text-warning">
-                  {stats?.totalReports ||0}
-                </h3>
-              </Card>
-            </motion.div>
-          </Col>
+                    <div
+                      style={{
+                        fontSize: "28px",
+                        color: "#ccc",
+                      }}
+                    >
+                      {card.icon}
+                    </div>
 
-          {/* Pending */}
-          <Col md={3} sm={6}>
-            <motion.div whileHover={{ scale: 1.05 }}>
-              <Card className="shadow border-0 text-center p-3">
-                <h6>Pending (Reported)</h6>
-                <h3 className="fw-bold text-danger">
-                  {stats?.pendingReports||0}
-                </h3>
-              </Card>
-            </motion.div>
-          </Col>
-
-          {/* Resolved */}
-          <Col md={3} sm={6}>
-            <motion.div whileHover={{ scale: 1.05 }}>
-              <Card className="shadow border-0 text-center p-3">
-                <h6>Resolved (Repaired)</h6>
-                <h3 className="fw-bold text-success">
-                  {stats?.resolvedReports ||0}
-                </h3>
-              </Card>
-            </motion.div>
-          </Col>
-
-          {/* High Severity */}
-          <Col md={3} sm={6}>
-            <motion.div whileHover={{ scale: 1.05 }}>
-              <Card className="shadow border-0 text-center p-3">
-                <h6>High Severity Cases</h6>
-                <h3 className="fw-bold text-primary">
-                  {stats?.highSeverity ||0}
-                </h3>
-              </Card>
-            </motion.div>
-          </Col>
-
+                  </div>
+                </Card>
+              </motion.div>
+            </Col>
+          ))}
         </Row>
       )}
 
-      {/* Extra Info */}
+      {/* 📌 INFO PANEL */}
       <Row className="mt-5">
         <Col>
-          <Card className="shadow border-0 p-4">
-            <h5>System Insights</h5>
-            <p className="text-muted">
-              Dashboard auto-refreshes every 5 seconds. High severity damages require urgent attention.
-            </p>
+          <Card
+            className="border-0 shadow"
+            style={{ borderRadius: "15px" }}
+          >
+            <Card.Body>
+              <h5>📊 System Insights</h5>
+              <p className="mb-1 text-muted">
+                • Dashboard refreshes every 5 seconds
+              </p>
+              <p className="mb-1 text-muted">
+                • High severity damages need immediate action
+              </p>
+              <p className="text-muted">
+                • Use admin tools to update report status
+              </p>
+            </Card.Body>
           </Card>
         </Col>
       </Row>

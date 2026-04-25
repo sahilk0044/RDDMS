@@ -71,20 +71,17 @@ export default function ReportScreen() {
     try {
       setLoading(true);
 
-      const res = await API.post("/reportDamage", formData, {
+      await API.post("/reportDamage", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
 
-      Alert.alert(
-        "Success",
-        `Type: ${res.data.damageType}\nSeverity: ${res.data.severity}`
-      );
+      // ✅ FORCE CLEAN SUCCESS MESSAGE
+      Alert.alert("Success", "Report submitted successfully");
 
       setImage(null);
       setLocation(null);
-
     } catch (err) {
       console.log("ERROR:", err.response?.data || err.message);
 
